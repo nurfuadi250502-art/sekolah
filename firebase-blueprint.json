@@ -1,0 +1,361 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user account profile and role mapping.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 160 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["admin", "teacher", "student"] },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "isActive": { "type": "boolean" },
+        "linkedEntityId": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "role", "isActive", "createdAt", "updatedAt"]
+    },
+    "AccountInvite": {
+      "title": "AccountInvite",
+      "description": "Admin-provisioned account activation mapping email to role and linked teacher/student record.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 160 },
+        "role": { "type": "string", "enum": ["teacher", "student"] },
+        "linkedEntityId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fullName": { "type": "string", "maxLength": 120 },
+        "identityCode": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["pending", "activated", "revoked"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "linkedEntityId", "fullName", "status", "createdBy", "createdAt", "updatedAt"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Student master academic and demographic record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "nis": { "type": "string", "maxLength": 40 },
+        "nisn": { "type": "string", "maxLength": 40 },
+        "fullName": { "type": "string", "maxLength": 120 },
+        "gender": { "type": "string", "enum": ["L", "P"] },
+        "birthPlace": { "type": "string", "maxLength": 80 },
+        "birthDate": { "type": "string", "maxLength": 20 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "email": { "type": "string", "maxLength": 160 },
+        "parentName": { "type": "string", "maxLength": 120 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "className": { "type": "string", "maxLength": 64 },
+        "entryYear": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive", "graduated", "transferred"] },
+        "photoUrl": { "type": "string", "maxLength": 500 },
+        "assignedTeacherIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nis", "nisn", "fullName", "gender", "email", "classId", "entryYear", "status", "createdAt", "updatedAt"]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Teacher master record and class/subject assignments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "nip": { "type": "string", "maxLength": 40 },
+        "teacherCode": { "type": "string", "maxLength": 40 },
+        "fullName": { "type": "string", "maxLength": 120 },
+        "gender": { "type": "string", "enum": ["L", "P"] },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "email": { "type": "string", "maxLength": 160 },
+        "subjectIds": { "type": "array" },
+        "subjectNames": { "type": "array" },
+        "classIds": { "type": "array" },
+        "classNames": { "type": "array" },
+        "employmentStatus": { "type": "string", "enum": ["PNS", "PPPK", "GTY", "Honorer", "inactive"] },
+        "photoUrl": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "teacherCode", "fullName", "gender", "email", "subjectIds", "classIds", "employmentStatus", "createdAt", "updatedAt"]
+    },
+    "SchoolClass": {
+      "title": "SchoolClass",
+      "description": "Classroom definition and homeroom assignment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "maxLength": 64 },
+        "gradeLevel": { "type": "string", "maxLength": 20 },
+        "homeroomTeacherId": { "type": "string", "maxLength": 128 },
+        "homeroomTeacherName": { "type": "string", "maxLength": 120 },
+        "academicYearId": { "type": "string", "maxLength": 128 },
+        "capacity": { "type": "number" },
+        "room": { "type": "string", "maxLength": 40 },
+        "teacherIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "gradeLevel", "academicYearId", "capacity", "createdAt", "updatedAt"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Academic subject metadata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "code": { "type": "string", "maxLength": 24 },
+        "name": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 60 },
+        "gradeLevel": { "type": "string", "maxLength": 20 },
+        "kkm": { "type": "number" },
+        "description": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "code", "name", "kkm", "createdAt", "updatedAt"]
+    },
+    "AcademicYear": {
+      "title": "AcademicYear",
+      "description": "School academic year period.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "maxLength": 40 },
+        "startDate": { "type": "string", "maxLength": 20 },
+        "endDate": { "type": "string", "maxLength": 20 },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "startDate", "endDate", "isActive", "createdAt", "updatedAt"]
+    },
+    "Semester": {
+      "title": "Semester",
+      "description": "Semester period within an academic year.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "academicYearId": { "type": "string", "maxLength": 128 },
+        "academicYearName": { "type": "string", "maxLength": 40 },
+        "name": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "startDate": { "type": "string", "maxLength": 20 },
+        "endDate": { "type": "string", "maxLength": 20 },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "academicYearId", "name", "isActive", "createdAt", "updatedAt"]
+    },
+    "Schedule": {
+      "title": "Schedule",
+      "description": "Class timetable slot linking class, subject, and teacher.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "maxLength": 128 },
+        "className": { "type": "string", "maxLength": 64 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "subjectName": { "type": "string", "maxLength": 100 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "teacherUserId": { "type": "string", "maxLength": 128 },
+        "teacherName": { "type": "string", "maxLength": 120 },
+        "semesterId": { "type": "string", "maxLength": 128 },
+        "dayOfWeek": { "type": "string", "enum": ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"] },
+        "startTime": { "type": "string", "maxLength": 10 },
+        "endTime": { "type": "string", "maxLength": 10 },
+        "room": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "subjectId", "teacherId", "semesterId", "dayOfWeek", "startTime", "endTime", "createdAt", "updatedAt"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Single-session student attendance record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentUserId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 120 },
+        "studentNis": { "type": "string", "maxLength": 40 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "className": { "type": "string", "maxLength": 64 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "subjectName": { "type": "string", "maxLength": 100 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "teacherUserId": { "type": "string", "maxLength": 128 },
+        "teacherName": { "type": "string", "maxLength": 120 },
+        "semesterId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 20 },
+        "status": { "type": "string", "enum": ["Hadir", "Izin", "Sakit", "Alpa"] },
+        "notes": { "type": "string", "maxLength": 240 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "history": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "studentId", "classId", "subjectId", "teacherId", "semesterId", "date", "status", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Grade": {
+      "title": "Grade",
+      "description": "Student subject assessment scores and computed final grade.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentUserId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 120 },
+        "studentNis": { "type": "string", "maxLength": 40 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "className": { "type": "string", "maxLength": 64 },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "subjectName": { "type": "string", "maxLength": 100 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "teacherUserId": { "type": "string", "maxLength": 128 },
+        "teacherName": { "type": "string", "maxLength": 120 },
+        "semesterId": { "type": "string", "maxLength": 128 },
+        "academicYearId": { "type": "string", "maxLength": 128 },
+        "tugas": { "type": "number" },
+        "kuis": { "type": "number" },
+        "ulanganHarian": { "type": "number" },
+        "pts": { "type": "number" },
+        "pas": { "type": "number" },
+        "praktik": { "type": "number" },
+        "finalScore": { "type": "number" },
+        "letterGrade": { "type": "string", "maxLength": 4 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "history": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "studentId", "classId", "subjectId", "teacherId", "semesterId", "tugas", "kuis", "ulanganHarian", "pts", "pas", "praktik", "finalScore", "letterGrade", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "School or class announcement with target audience.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 160 },
+        "content": { "type": "string", "maxLength": 4000 },
+        "targetRole": { "type": "string", "enum": ["all", "teacher", "student", "class"] },
+        "targetClassId": { "type": "string", "maxLength": 128 },
+        "targetClassName": { "type": "string", "maxLength": 64 },
+        "publishDate": { "type": "string", "maxLength": 20 },
+        "expiryDate": { "type": "string", "maxLength": 20 },
+        "attachmentName": { "type": "string", "maxLength": 160 },
+        "attachmentUrl": { "type": "string", "maxLength": 500 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "authorName": { "type": "string", "maxLength": 120 },
+        "authorRole": { "type": "string", "enum": ["admin", "teacher"] },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "content", "targetRole", "publishDate", "authorId", "authorName", "authorRole", "createdAt", "updatedAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Immutable system audit log entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 120 },
+        "userRole": { "type": "string", "enum": ["admin", "teacher", "student", "system"] },
+        "actionType": { "type": "string", "maxLength": 64 },
+        "targetObject": { "type": "string", "maxLength": 200 },
+        "details": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "userName", "userRole", "actionType", "targetObject", "createdAt"]
+    },
+    "SchoolSettings": {
+      "title": "SchoolSettings",
+      "description": "Global school identity, contact, grading weights, and academic calendar configuration.",
+      "type": "object",
+      "properties": {
+        "schoolName": { "type": "string", "maxLength": 160 },
+        "tagline": { "type": "string", "maxLength": 240 },
+        "welcomeTitle": { "type": "string", "maxLength": 160 },
+        "welcomeMessage": { "type": "string", "maxLength": 2000 },
+        "principalName": { "type": "string", "maxLength": 120 },
+        "logoUrl": { "type": "string", "maxLength": 500 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 40 },
+        "email": { "type": "string", "maxLength": 160 },
+        "website": { "type": "string", "maxLength": 160 },
+        "npsn": { "type": "string", "maxLength": 32 },
+        "accreditation": { "type": "string", "maxLength": 20 },
+        "gradeWeights": { "type": "object" },
+        "minScore": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "allowStudentReportDownload": { "type": "boolean" },
+        "allowStudentPhotoChange": { "type": "boolean" },
+        "calendarEvents": { "type": "array" },
+        "wpSiteUrl": { "type": "string", "maxLength": 240 },
+        "wpSyncEnabled": { "type": "boolean" },
+        "wpShowOnPublicHome": { "type": "boolean" },
+        "wpCategoryId": { "type": "string", "maxLength": 40 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["schoolName", "welcomeMessage", "address", "phone", "email", "gradeWeights", "minScore", "maxScore", "allowStudentReportDownload", "allowStudentPhotoChange", "updatedAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User-targeted notification entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "recipientUserId": { "type": "string", "maxLength": 128 },
+        "recipientRole": { "type": "string", "enum": ["all", "admin", "teacher", "student"] },
+        "title": { "type": "string", "maxLength": 160 },
+        "message": { "type": "string", "maxLength": 400 },
+        "category": { "type": "string", "enum": ["announcement", "grade", "attendance", "system"] },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "recipientRole", "title", "message", "category", "isRead", "createdAt"]
+    },
+    "AdminMarker": {
+      "title": "AdminMarker",
+      "description": "Trusted marker document granting admin role to a specific UID.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 160 },
+        "grantedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": { "$ref": "#/entities/User" }, "description": "User accounts and RBAC profiles" },
+    "/admins/{userId}": { "schema": { "$ref": "#/entities/AdminMarker" }, "description": "Trusted admin role registry" },
+    "/account_invites/{inviteEmail}": { "schema": { "$ref": "#/entities/AccountInvite" }, "description": "Pending account activations created by Admin" },
+    "/students/{studentId}": { "schema": { "$ref": "#/entities/Student" }, "description": "Student records" },
+    "/teachers/{teacherId}": { "schema": { "$ref": "#/entities/Teacher" }, "description": "Teacher records" },
+    "/classes/{classId}": { "schema": { "$ref": "#/entities/SchoolClass" }, "description": "Classes" },
+    "/subjects/{subjectId}": { "schema": { "$ref": "#/entities/Subject" }, "description": "Subjects" },
+    "/academic_years/{yearId}": { "schema": { "$ref": "#/entities/AcademicYear" }, "description": "Academic years" },
+    "/semesters/{semesterId}": { "schema": { "$ref": "#/entities/Semester" }, "description": "Semesters" },
+    "/schedules/{scheduleId}": { "schema": { "$ref": "#/entities/Schedule" }, "description": "Lesson schedules" },
+    "/attendance/{attendanceId}": { "schema": { "$ref": "#/entities/Attendance" }, "description": "Student attendance records" },
+    "/grades/{gradeId}": { "schema": { "$ref": "#/entities/Grade" }, "description": "Student grade records" },
+    "/announcements/{announcementId}": { "schema": { "$ref": "#/entities/Announcement" }, "description": "School and class announcements" },
+    "/activity_logs/{logId}": { "schema": { "$ref": "#/entities/ActivityLog" }, "description": "Immutable audit logs" },
+    "/school_settings/{settingId}": { "schema": { "$ref": "#/entities/SchoolSettings" }, "description": "School profile and settings" },
+    "/notifications/{notificationId}": { "schema": { "$ref": "#/entities/Notification" }, "description": "User notifications" }
+  }
+}

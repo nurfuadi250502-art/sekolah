@@ -1,0 +1,8 @@
+{
+  "name": "School Academic Portal",
+  "description": "Platform manajemen akademik sekolah terpadu untuk Admin, Guru, dan Siswa berbasis Cloud Firestore dan Firebase Authentication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
