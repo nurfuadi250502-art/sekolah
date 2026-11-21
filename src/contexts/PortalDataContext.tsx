@@ -23,6 +23,7 @@ import {
   Semester,
   Student,
   Subject,
+  SubjectGradingConfig,
   Teacher,
   UserProfile,
 } from '../types/portal';
@@ -33,6 +34,7 @@ interface PortalDataContextValue {
   teachers: Teacher[];
   classes: SchoolClass[];
   subjects: Subject[];
+  subjectGradingConfigs: SubjectGradingConfig[];
   academicYears: AcademicYear[];
   semesters: Semester[];
   schedules: Schedule[];
@@ -59,6 +61,7 @@ export function PortalDataProvider({ children }: { children: React.ReactNode }) 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectGradingConfigs, setSubjectGradingConfigs] = useState<SubjectGradingConfig[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -77,6 +80,7 @@ export function PortalDataProvider({ children }: { children: React.ReactNode }) 
       setTeachers([]);
       setClasses([]);
       setSubjects([]);
+      setSubjectGradingConfigs([]);
       setAcademicYears([]);
       setSemesters([]);
       setSchedules([]);
@@ -101,6 +105,14 @@ export function PortalDataProvider({ children }: { children: React.ReactNode }) 
         collection(db, 'subjects'),
         (snap) => setSubjects(snap.docs.map((d) => d.data() as Subject)),
         (err) => handleFirestoreError(err, OperationType.LIST, 'subjects')
+      )
+    );
+    unsubs.push(
+      onSnapshot(
+        collection(db, 'subject_grading_configs'),
+        (snap) =>
+          setSubjectGradingConfigs(snap.docs.map((d) => d.data() as SubjectGradingConfig)),
+        (err) => handleFirestoreError(err, OperationType.LIST, 'subject_grading_configs')
       )
     );
     unsubs.push(
@@ -352,6 +364,7 @@ export function PortalDataProvider({ children }: { children: React.ReactNode }) 
         teachers,
         classes,
         subjects,
+        subjectGradingConfigs,
         academicYears,
         semesters,
         schedules,

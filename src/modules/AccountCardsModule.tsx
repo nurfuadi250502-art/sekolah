@@ -276,12 +276,15 @@ export function AccountCardsModule() {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <img
                       src={
-                        schoolSettings.logoUrl ||
-                        '/src/assets/images/school_crest_logo_1795012759504.jpg'
+                        !schoolSettings.logoUrl ||
+                        schoolSettings.logoUrl ===
+                          '/src/assets/images/school_crest_logo_1795012759504.jpg'
+                          ? '/assets/aistudio/logo_pondok_7b601747.png'
+                          : schoolSettings.logoUrl
                       }
                       alt={schoolSettings.schoolName}
                       referrerPolicy="no-referrer"
-                      className="w-7 h-7 rounded bg-white object-cover shrink-0"
+                      className="w-7 h-7 rounded bg-white object-contain p-0.5 shrink-0"
                     />
                     <div className="min-w-0">
                       <p className="font-display font-bold text-xs truncate">

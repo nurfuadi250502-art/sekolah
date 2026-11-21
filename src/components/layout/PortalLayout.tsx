@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { LanguageSwitcher, TranslationKey, useLanguage } from '../../contexts/LanguageContext';
 import { usePortalData } from '../../contexts/PortalDataContext';
 import { markNotificationRead } from '../../services/firestoreService';
 import { NavTabId, UserRole } from '../../types/portal';
@@ -66,6 +67,7 @@ export function PortalLayout({
     logout,
   } = useAuth();
   const { students, teachers, classes, subjects, announcements, notifications } = usePortalData();
+  const { t, isRtl } = useLanguage();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -118,8 +120,8 @@ export function PortalLayout({
   }, [globalQuery, students, teachers, classes, subjects, announcements, role]);
 
   const roleLabel =
-    role === 'admin' ? 'Administrator' : role === 'teacher' ? 'Guru Pengajar' : 'Siswa';
-  const activeTitle = visibleNavItems.find((i) => i.id === activeTab)?.label || 'Dashboard';
+    role === 'admin' ? t('roleAdmin') : role === 'teacher' ? t('roleTeacher') : t('roleStudent');
+  const activeTitle = t(('nav_' + activeTab) as TranslationKey);
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-[#091322] text-slate-900 dark:text-slate-100">
@@ -132,17 +134,22 @@ export function PortalLayout({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0A1D37] text-slate-200 flex flex-col border-r border-slate-800/80 transition-transform duration-200 lg:static lg:translate-x-0 no-print ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 start-0 z-50 w-64 bg-[#0A1D37] text-slate-200 flex flex-col border-e border-slate-800/80 transition-transform duration-200 lg:static lg:translate-x-0 no-print ${
+          mobileMenuOpen ? 'translate-x-0' : isRtl ? 'translate-x-full' : '-translate-x-full'
         }`}
       >
         <div className="h-16 px-4 flex items-center justify-between border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <img
-              src={schoolSettings.logoUrl || '/src/assets/images/school_crest_logo_1795012759504.jpg'}
+              src={
+                !schoolSettings.logoUrl ||
+                schoolSettings.logoUrl === '/src/assets/images/school_crest_logo_1795012759504.jpg'
+                  ? '/assets/aistudio/logo_pondok_7b601747.png'
+                  : schoolSettings.logoUrl
+              }
               alt={schoolSettings.schoolName}
               referrerPolicy="no-referrer"
-              className="w-8 h-8 rounded-lg object-cover bg-white shrink-0"
+              className="w-9 h-9 rounded-lg object-contain bg-white/95 p-0.5 shrink-0"
             />
             <div className="min-w-0">
               <p className="font-display font-bold text-sm text-white truncate">
@@ -180,7 +187,7 @@ export function PortalLayout({
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{t(('nav_' + item.id) as TranslationKey)}</span>
               </button>
             );
           })}
@@ -189,7 +196,7 @@ export function PortalLayout({
         {/* Admin Role Preview Switcher */}
         {userProfile?.role === 'admin' && (
           <div className="px-3 py-3 border-t border-white/10">
-            <p className="text-[11px] text-slate-400 mb-1.5 px-1">Pratinjau Tampilan Peran</p>
+            <p className="text-[11px] text-slate-400 mb-1.5 px-1">{t('rolePreview')}</p>
             <div className="grid grid-cols-3 gap-1 bg-slate-900/60 p-1 rounded-lg">
               {(['admin', 'teacher', 'student'] as UserRole[]).map((r) => (
                 <button
@@ -203,7 +210,7 @@ export function PortalLayout({
                     role === r ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  {r === 'admin' ? 'Admin' : r === 'teacher' ? 'Guru' : 'Siswa'}
+                  {r === 'admin' ? t('roleAdmin') : r === 'teacher' ? t('roleTeacher') : t('roleStudent')}
                 </button>
               ))}
             </div>
@@ -217,7 +224,7 @@ export function PortalLayout({
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-300 hover:bg-rose-500/15 transition-colors"
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            <span>Keluar Portal</span>
+            <span>{t('logoutPortal')}</span>
           </button>
         </div>
       </aside>
@@ -247,16 +254,16 @@ export function PortalLayout({
 
           {/* Global Search */}
           <div className="relative hidden md:block flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={globalQuery}
               onChange={(e) => setGlobalQuery(e.target.value)}
-              placeholder="Cari siswa, kelas, mata pelajaran, atau pengumuman..."
-              className="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#162742] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+              placeholder={t('searchPlaceholder')}
+              className="w-full ps-9 pe-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#162742] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             />
             {searchResults.length > 0 && (
-              <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-1.5 z-50">
+              <div className="absolute inset-x-0 mt-1.5 bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-1.5 z-50">
                 {searchResults.map((res, idx) => (
                   <button
                     key={idx}
@@ -265,7 +272,7 @@ export function PortalLayout({
                       onSelectTab(res.tab);
                       setGlobalQuery('');
                     }}
-                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between gap-2"
+                    className="w-full text-start px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between gap-2"
                   >
                     <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
                       {res.label}
@@ -281,6 +288,7 @@ export function PortalLayout({
 
           {/* Right Utilities */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <LanguageSwitcher variant="light" />
             <button
               type="button"
               onClick={toggleTheme}
@@ -299,30 +307,30 @@ export function PortalLayout({
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-sky-600 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+                  <span className="absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 rounded-full bg-sky-600 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
                     {unreadCount}
                   </span>
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute end-0 mt-2 w-80 bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      Notifikasi Terbaru
+                      {t('notificationsTitle')}
                     </span>
                     <button
                       type="button"
                       onClick={() => setNotifOpen(false)}
                       className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                     >
-                      Tutup
+                      {t('closeLabel')}
                     </button>
                   </div>
                   <div className="max-h-72 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
                     {notifications.length === 0 ? (
                       <p className="p-4 text-xs text-slate-500 dark:text-slate-400 text-center">
-                        Belum ada notifikasi baru.
+                        {t('noNotifications')}
                       </p>
                     ) : (
                       notifications.slice(0, 8).map((n) => (

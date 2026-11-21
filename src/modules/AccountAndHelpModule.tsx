@@ -237,7 +237,7 @@ export function HelpCenterModule() {
           <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-disc pl-4">
             <li>Akses daftar kelas dan siswa yang ditugaskan kepada Anda pada menu Data Siswa & Kelas.</li>
             <li>Input absensi harian per kelas dan mata pelajaran; sistem mencegah duplikasi otomatis.</li>
-            <li>Input nilai Tugas, Kuis, UH, PTS, PAS, dan Praktik; Nilai Akhir terhitung otomatis.</li>
+            <li>Input nilai Ujian Lisan & Ujian Tulis serta atur perhitungan soal per BAB & Range mapel pada tab Pengaturan Nilai.</li>
             <li>Terbitkan pengumuman khusus kelas dan unduh rekap PDF/Excel.</li>
           </ul>
         </div>

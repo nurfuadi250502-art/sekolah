@@ -209,7 +209,7 @@
     },
     "Grade": {
       "title": "Grade",
-      "description": "Student subject assessment scores and computed final grade.",
+      "description": "Student subject assessment scores (Ujian Lisan and Ujian Tulis) and computed final grade.",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
@@ -226,6 +226,9 @@
         "teacherName": { "type": "string", "maxLength": 120 },
         "semesterId": { "type": "string", "maxLength": 128 },
         "academicYearId": { "type": "string", "maxLength": 128 },
+        "ujianLisan": { "type": "number" },
+        "ujianTulis": { "type": "number" },
+        "writtenDetails": { "type": "array" },
         "tugas": { "type": "number" },
         "kuis": { "type": "number" },
         "ulanganHarian": { "type": "number" },
@@ -239,7 +242,29 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "studentId", "classId", "subjectId", "teacherId", "semesterId", "tugas", "kuis", "ulanganHarian", "pts", "pas", "praktik", "finalScore", "letterGrade", "updatedBy", "createdAt", "updatedAt"]
+      "required": ["id", "studentId", "classId", "subjectId", "teacherId", "semesterId", "ujianLisan", "ujianTulis", "finalScore", "letterGrade", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "SubjectGradingConfig": {
+      "title": "SubjectGradingConfig",
+      "description": "Per-subject grading weights, range calculation settings, and written exam BAB/question structure.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "subjectId": { "type": "string", "maxLength": 128 },
+        "subjectName": { "type": "string", "maxLength": 100 },
+        "ujianLisanWeight": { "type": "number" },
+        "ujianTulisWeight": { "type": "number" },
+        "rangeMin": { "type": "number" },
+        "rangeMax": { "type": "number" },
+        "rangeMode": { "type": "string", "enum": ["proportional", "direct"] },
+        "babs": { "type": "array" },
+        "kkm": { "type": "number" },
+        "gradeBands": { "type": "object" },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "subjectId", "ujianLisanWeight", "ujianTulisWeight", "rangeMin", "rangeMax", "rangeMode", "babs", "updatedBy", "createdAt", "updatedAt"]
     },
     "Announcement": {
       "title": "Announcement",
@@ -353,6 +378,7 @@
     "/schedules/{scheduleId}": { "schema": { "$ref": "#/entities/Schedule" }, "description": "Lesson schedules" },
     "/attendance/{attendanceId}": { "schema": { "$ref": "#/entities/Attendance" }, "description": "Student attendance records" },
     "/grades/{gradeId}": { "schema": { "$ref": "#/entities/Grade" }, "description": "Student grade records" },
+    "/subject_grading_configs/{subjectId}": { "schema": { "$ref": "#/entities/SubjectGradingConfig" }, "description": "Per-subject grading weights, range calculation, and written exam BAB/question configurations" },
     "/announcements/{announcementId}": { "schema": { "$ref": "#/entities/Announcement" }, "description": "School and class announcements" },
     "/activity_logs/{logId}": { "schema": { "$ref": "#/entities/ActivityLog" }, "description": "Immutable audit logs" },
     "/school_settings/{settingId}": { "schema": { "$ref": "#/entities/SchoolSettings" }, "description": "School profile and settings" },

@@ -22,20 +22,27 @@ import {
   Announcement,
   AttendanceRecord,
   AttendanceStatus,
+  DEFAULT_GRADE_BANDS,
   DEFAULT_GRADE_WEIGHTS,
   DEFAULT_SCHOOL_SETTINGS,
+  GradeRangeBands,
   GradeRecord,
   GradeWeights,
+  normalizeGradeWeights,
   NotificationItem,
+  RangeCalculationMode,
   Schedule,
   SchoolClass,
   SchoolSettings,
   Semester,
   Student,
   Subject,
+  SubjectGradingConfig,
   Teacher,
   UserProfile,
   UserRole,
+  WrittenBabScoreEntry,
+  WrittenExamBab,
 } from '../types/portal';
 
 export function makeId(prefix = 'id'): string {
@@ -52,45 +59,102 @@ export function boundString(val: unknown, maxLen: number): string {
   return val.trim().slice(0, maxLen);
 }
 
+export function computeWrittenExamScore(
+  babs: WrittenExamBab[],
+  scoresByBabId: Record<string, number[]>,
+  range: { rangeMin: number; rangeMax: number; rangeMode: RangeCalculationMode }
+): {
+  writtenDetails: WrittenBabScoreEntry[];
+  totalEarned: number;
+  totalMax: number;
+  convertedScore: number;
+} {
+  let totalEarned = 0;
+  let totalMax = 0;
+  const writtenDetails: WrittenBabScoreEntry[] = [];
+
+  for (const bab of babs) {
+    const qCount = Math.max(1, Math.min(100, Math.round(bab.questionCount || 1)));
+    const maxPerQ = Math.max(1, Number(bab.maxPerQuestion || 1));
+    const rawList = scoresByBabId[bab.id] || [];
+    const questionScores: number[] = [];
+    let babSubtotal = 0;
+
+    for (let i = 0; i < qCount; i++) {
+      const val = Math.max(0, Math.min(maxPerQ, Number(rawList[i] ?? 0)));
+      const cleanVal = Number.isNaN(val) ? 0 : Math.round(val * 100) / 100;
+      questionScores.push(cleanVal);
+      babSubtotal += cleanVal;
+    }
+
+    const babMaxTotal = Math.round(qCount * maxPerQ * 100) / 100;
+    babSubtotal = Math.round(babSubtotal * 100) / 100;
+    totalEarned += babSubtotal;
+    totalMax += babMaxTotal;
+
+    writtenDetails.push({
+      babId: bab.id,
+      babTitle: bab.title,
+      questionScores,
+      maxPerQuestion: maxPerQ,
+      subtotal: babSubtotal,
+      maxTotal: babMaxTotal,
+    });
+  }
+
+  totalEarned = Math.round(totalEarned * 100) / 100;
+  totalMax = Math.round(totalMax * 100) / 100;
+
+  const rMin = Number(range.rangeMin ?? 0);
+  const rMax = Number(range.rangeMax ?? 100);
+  let rawConverted = rMin;
+  if (range.rangeMode === 'direct') {
+    rawConverted = Math.min(rMax, Math.max(rMin, totalEarned));
+  } else {
+    rawConverted =
+      totalMax > 0 ? rMin + (totalEarned / totalMax) * (rMax - rMin) : rMin;
+    rawConverted = Math.min(rMax, Math.max(rMin, rawConverted));
+  }
+
+  return {
+    writtenDetails,
+    totalEarned,
+    totalMax,
+    convertedScore: Math.round(rawConverted * 100) / 100,
+  };
+}
+
 export function computeFinalScore(
   scores: {
-    tugas: number;
-    kuis: number;
-    ulanganHarian: number;
-    pts: number;
-    pas: number;
-    praktik: number;
+    ujianLisan: number;
+    ujianTulis: number;
   },
-  weights: GradeWeights = DEFAULT_GRADE_WEIGHTS
+  weights: GradeWeights = DEFAULT_GRADE_WEIGHTS,
+  gradeBands?: GradeRangeBands,
+  maxScale = 100
 ): { finalScore: number; letterGrade: string } {
-  const totalWeight =
-    weights.tugas +
-      weights.kuis +
-      weights.ulanganHarian +
-      weights.pts +
-      weights.pas +
-      weights.praktik || 100;
+  const safeWeights = normalizeGradeWeights(weights);
+  const totalWeight = safeWeights.ujianLisan + safeWeights.ujianTulis || 100;
 
   const weighted =
-    (scores.tugas * weights.tugas +
-      scores.kuis * weights.kuis +
-      scores.ulanganHarian * weights.ulanganHarian +
-      scores.pts * weights.pts +
-      scores.pas * weights.pas +
-      scores.praktik * weights.praktik) /
+    (Number(scores.ujianLisan || 0) * safeWeights.ujianLisan +
+      Number(scores.ujianTulis || 0) * safeWeights.ujianTulis) /
     totalWeight;
 
-  const finalScore = Math.min(100, Math.max(0, Math.round(weighted * 100) / 100));
+  const upperBound = Math.max(100, Number(maxScale || 100));
+  const finalScore = Math.min(upperBound, Math.max(0, Math.round(weighted * 100) / 100));
+
+  const bands = gradeBands || DEFAULT_GRADE_BANDS;
+  const evalScore =
+    !gradeBands && maxScale > 0 && maxScale !== 100
+      ? (finalScore / maxScale) * 100
+      : finalScore;
 
   let letterGrade = 'E';
-  if (finalScore >= 90) letterGrade = 'A';
-  else if (finalScore >= 85) letterGrade = 'A-';
-  else if (finalScore >= 80) letterGrade = 'B+';
-  else if (finalScore >= 75) letterGrade = 'B';
-  else if (finalScore >= 70) letterGrade = 'B-';
-  else if (finalScore >= 65) letterGrade = 'C+';
-  else if (finalScore >= 60) letterGrade = 'C';
-  else if (finalScore >= 50) letterGrade = 'D';
+  if (evalScore >= bands.aMin) letterGrade = 'A';
+  else if (evalScore >= bands.bMin) letterGrade = 'B';
+  else if (evalScore >= bands.cMin) letterGrade = 'C';
+  else if (evalScore >= bands.dMin) letterGrade = 'D';
 
   return { finalScore, letterGrade };
 }
@@ -148,7 +212,12 @@ export async function getSchoolSettings(): Promise<SchoolSettings> {
   try {
     const snap = await getDoc(doc(db, 'school_settings', 'main'));
     if (snap.exists()) {
-      return snap.data() as SchoolSettings;
+      const data = snap.data() as SchoolSettings;
+      return {
+        ...DEFAULT_SCHOOL_SETTINGS,
+        ...data,
+        gradeWeights: normalizeGradeWeights(data.gradeWeights),
+      } as SchoolSettings;
     }
     return DEFAULT_SCHOOL_SETTINGS as SchoolSettings;
   } catch (error) {
@@ -459,19 +528,46 @@ export async function createAccountInvite(
   actor: { uid: string; name: string; role: UserRole }
 ): Promise<void> {
   const emailLower = boundString(invite.email, 160).toLowerCase();
+  const linkedEntityId = sanitizeId(invite.linkedEntityId);
+  if (!emailLower || !linkedEntityId) {
+    throw new Error('Email dan ID entitas wajib diisi untuk menyiapkan akun.');
+  }
   const path = `account_invites/${emailLower}`;
   try {
-    await setDoc(doc(db, 'account_invites', emailLower), {
-      email: emailLower,
-      role: invite.role,
-      linkedEntityId: sanitizeId(invite.linkedEntityId),
-      fullName: boundString(invite.fullName, 120),
-      identityCode: boundString(invite.identityCode || '', 64),
-      status: invite.status || 'pending',
-      createdBy: actor.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    const inviteRef = doc(db, 'account_invites', emailLower);
+    const existingSnap = await getDoc(inviteRef);
+    const existingStatus = existingSnap.exists()
+      ? (existingSnap.data() as AccountInvite).status
+      : undefined;
+    const nextStatus =
+      existingStatus === 'activated' && (!invite.status || invite.status === 'pending')
+        ? 'activated'
+        : invite.status || 'pending';
+
+    if (existingSnap.exists()) {
+      await updateDoc(inviteRef, {
+        email: emailLower,
+        role: invite.role,
+        linkedEntityId,
+        fullName: boundString(invite.fullName, 120),
+        identityCode: boundString(invite.identityCode || '', 64),
+        status: nextStatus,
+        createdBy: actor.uid,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await setDoc(inviteRef, {
+        email: emailLower,
+        role: invite.role,
+        linkedEntityId,
+        fullName: boundString(invite.fullName, 120),
+        identityCode: boundString(invite.identityCode || '', 64),
+        status: nextStatus,
+        createdBy: actor.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
     await logActivity({
       userId: actor.uid,
       userName: actor.name,
@@ -861,14 +957,12 @@ export async function saveGradeEntry(
     semesterId: string;
     academicYearId: string;
     scores: {
-      tugas: number;
-      kuis: number;
-      ulanganHarian: number;
-      pts: number;
-      pas: number;
-      praktik: number;
+      ujianLisan: number;
+      ujianTulis: number;
     };
+    writtenDetails?: WrittenBabScoreEntry[];
     weights: GradeWeights;
+    gradeBands?: GradeRangeBands;
     minScore: number;
     maxScore: number;
     existingGrade?: GradeRecord;
@@ -877,14 +971,19 @@ export async function saveGradeEntry(
   actor: { uid: string; name: string; role: UserRole }
 ): Promise<void> {
   const { scores, minScore, maxScore } = params;
-  const scoreValues = Object.values(scores);
+  const scoreValues = [scores.ujianLisan, scores.ujianTulis];
   for (const val of scoreValues) {
     if (Number.isNaN(val) || val < minScore || val > maxScore) {
       throw new Error(`Nilai harus berada dalam rentang ${minScore} hingga ${maxScore}.`);
     }
   }
 
-  const { finalScore, letterGrade } = computeFinalScore(scores, params.weights);
+  const { finalScore, letterGrade } = computeFinalScore(
+    scores,
+    params.weights,
+    params.gradeBands,
+    maxScore
+  );
   const id = getGradeDocId(
     params.semesterId,
     params.classId,
@@ -892,6 +991,15 @@ export async function saveGradeEntry(
     params.student.id
   );
   const path = `grades/${id}`;
+
+  const sanitizedWrittenDetails = (params.writtenDetails || []).slice(0, 30).map((b) => ({
+    babId: sanitizeId(b.babId),
+    babTitle: boundString(b.babTitle, 80),
+    questionScores: (b.questionScores || []).slice(0, 100).map((n) => Number(n) || 0),
+    maxPerQuestion: Number(b.maxPerQuestion) || 1,
+    subtotal: Number(b.subtotal) || 0,
+    maxTotal: Number(b.maxTotal) || 0,
+  }));
 
   try {
     const docRef = doc(db, 'grades', id);
@@ -907,7 +1015,9 @@ export async function saveGradeEntry(
       });
 
       await updateDoc(docRef, {
-        ...scores,
+        ujianLisan: Number(scores.ujianLisan) || 0,
+        ujianTulis: Number(scores.ujianTulis) || 0,
+        ...(params.writtenDetails ? { writtenDetails: sanitizedWrittenDetails } : {}),
         finalScore,
         letterGrade,
         history: nextHistory.slice(-50),
@@ -930,7 +1040,9 @@ export async function saveGradeEntry(
         teacherName: boundString(params.teacherName, 120),
         semesterId: sanitizeId(params.semesterId),
         academicYearId: sanitizeId(params.academicYearId),
-        ...scores,
+        ujianLisan: Number(scores.ujianLisan) || 0,
+        ujianTulis: Number(scores.ujianTulis) || 0,
+        writtenDetails: sanitizedWrittenDetails,
         finalScore,
         letterGrade,
         updatedBy: actor.uid,
@@ -946,7 +1058,75 @@ export async function saveGradeEntry(
       userRole: actor.role,
       actionType: params.existingGrade ? 'UPDATE_GRADE' : 'CREATE_GRADE',
       targetObject: `${params.student.fullName} · ${params.subjectName}`,
-      details: `Nilai Akhir: ${finalScore} (${letterGrade})`,
+      details: `Lisan: ${scores.ujianLisan}, Tulis: ${scores.ujianTulis} → Akhir: ${finalScore} (${letterGrade})`,
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function saveSubjectGradingConfig(
+  config: Omit<SubjectGradingConfig, 'id' | 'updatedBy' | 'createdAt' | 'updatedAt'>,
+  actor: { uid: string; name: string; role: UserRole }
+): Promise<void> {
+  const subjectId = sanitizeId(config.subjectId);
+  if (!subjectId) {
+    throw new Error('Mata pelajaran belum dipilih.');
+  }
+  const lisanW = Number(config.ujianLisanWeight);
+  const tulisW = Number(config.ujianTulisWeight);
+  if (lisanW + tulisW !== 100) {
+    throw new Error('Total bobot Ujian Lisan + Ujian Tulis harus 100%.');
+  }
+  const rangeMin = Number(config.rangeMin);
+  const rangeMax = Number(config.rangeMax);
+  if (Number.isNaN(rangeMin) || Number.isNaN(rangeMax) || rangeMin < 0 || rangeMax > 1000 || rangeMin >= rangeMax) {
+    throw new Error('Range nilai mapel tidak valid (Minimum harus < Maksimum, maks 1000).');
+  }
+
+  const babs = (config.babs || []).slice(0, 30).map((b, idx) => ({
+    id: sanitizeId(b.id || `bab_${idx + 1}`),
+    title: boundString(b.title || `BAB ${idx + 1}`, 80),
+    questionCount: Math.max(1, Math.min(100, Math.round(Number(b.questionCount) || 1))),
+    maxPerQuestion: Math.max(1, Math.min(100, Number(b.maxPerQuestion) || 1)),
+  }));
+
+  const path = `subject_grading_configs/${subjectId}`;
+  try {
+    const docRef = doc(db, 'subject_grading_configs', subjectId);
+    const existingSnap = await getDoc(docRef);
+    const basePayload = {
+      id: subjectId,
+      subjectId,
+      subjectName: boundString(config.subjectName || '', 100),
+      ujianLisanWeight: lisanW,
+      ujianTulisWeight: tulisW,
+      rangeMin,
+      rangeMax,
+      rangeMode: config.rangeMode === 'direct' ? 'direct' : 'proportional',
+      babs,
+      kkm: Math.max(0, Math.min(1000, Number(config.kkm ?? 75))),
+      gradeBands: config.gradeBands || DEFAULT_GRADE_BANDS,
+      updatedBy: actor.uid,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (existingSnap.exists()) {
+      await updateDoc(docRef, basePayload);
+    } else {
+      await setDoc(docRef, {
+        ...basePayload,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    await logActivity({
+      userId: actor.uid,
+      userName: actor.name,
+      userRole: actor.role,
+      actionType: 'SAVE_SUBJECT_GRADING_CONFIG',
+      targetObject: config.subjectName || subjectId,
+      details: `Range ${rangeMin}-${rangeMax}, Lisan ${lisanW}% / Tulis ${tulisW}%, ${babs.length} BAB`,
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
@@ -1057,9 +1237,12 @@ export async function initializeSchoolBaseline(actor: {
     }
 
     const starterClasses = [
-      { id: 'cls_10_ipa1', name: 'X IPA 1', gradeLevel: 'X', capacity: 36, room: 'R-101' },
-      { id: 'cls_11_ipa1', name: 'XI IPA 1', gradeLevel: 'XI', capacity: 36, room: 'R-201' },
-      { id: 'cls_12_ipa1', name: 'XII IPA 1', gradeLevel: 'XII', capacity: 36, room: 'R-301' },
+      { id: 'cls_1a', name: 'Kelas 1A', gradeLevel: '1', capacity: 36, room: 'R-101' },
+      { id: 'cls_2a', name: 'Kelas 2A', gradeLevel: '2', capacity: 36, room: 'R-102' },
+      { id: 'cls_3a', name: 'Kelas 3A', gradeLevel: '3', capacity: 36, room: 'R-103' },
+      { id: 'cls_4a', name: 'Kelas 4A', gradeLevel: '4', capacity: 36, room: 'R-201' },
+      { id: 'cls_5a', name: 'Kelas 5A', gradeLevel: '5', capacity: 36, room: 'R-202' },
+      { id: 'cls_6a', name: 'Kelas 6A', gradeLevel: '6', capacity: 36, room: 'R-203' },
     ];
     for (const c of starterClasses) {
       await setDoc(doc(db, 'classes', c.id), {
@@ -1160,12 +1343,22 @@ export async function restorePortalBackup(
     for (const rawItem of items) {
       const { _docId, createdAt: _c, updatedAt: _u, ...rest } = rawItem;
       const docId = sanitizeId(String(_docId || rest.id || makeId('res')));
-      await setDoc(doc(db, colName, docId), {
-        ...rest,
-        id: docId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const docRef = doc(db, colName, docId);
+      const existingDoc = await getDoc(docRef);
+      if (existingDoc.exists()) {
+        await updateDoc(docRef, {
+          ...rest,
+          id: docId,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(docRef, {
+          ...rest,
+          id: docId,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
       count++;
     }
   }

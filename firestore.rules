@@ -78,7 +78,7 @@ service cloud.firestore {
     }
 
     function isScoreValid(val) {
-      return val is number && val >= 0 && val <= 100;
+      return val is number && val >= 0 && val <= 1000;
     }
 
     // Entity validation blueprints
@@ -280,13 +280,13 @@ service cloud.firestore {
     }
 
     function isValidGrade(data) {
-      return data.keys().hasAll(['id', 'studentId', 'classId', 'subjectId', 'teacherId', 'semesterId', 'tugas', 'kuis', 'ulanganHarian', 'pts', 'pas', 'praktik', 'finalScore', 'letterGrade', 'updatedBy', 'createdAt', 'updatedAt'])
+      return data.keys().hasAll(['id', 'studentId', 'classId', 'subjectId', 'teacherId', 'semesterId', 'ujianLisan', 'ujianTulis', 'finalScore', 'letterGrade', 'updatedBy', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly([
           'id', 'studentId', 'studentUserId', 'studentName', 'studentNis', 'classId',
           'className', 'subjectId', 'subjectName', 'teacherId', 'teacherUserId',
-          'teacherName', 'semesterId', 'academicYearId', 'tugas', 'kuis',
-          'ulanganHarian', 'pts', 'pas', 'praktik', 'finalScore', 'letterGrade',
-          'updatedBy', 'history', 'createdAt', 'updatedAt'
+          'teacherName', 'semesterId', 'academicYearId', 'ujianLisan', 'ujianTulis',
+          'writtenDetails', 'tugas', 'kuis', 'ulanganHarian', 'pts', 'pas', 'praktik',
+          'finalScore', 'letterGrade', 'updatedBy', 'history', 'createdAt', 'updatedAt'
         ])
         && isValidId(data.id)
         && isValidId(data.studentId)
@@ -302,16 +302,44 @@ service cloud.firestore {
         && (!('teacherName' in data) || isStringBounded(data.teacherName, 120))
         && isValidId(data.semesterId)
         && (!('academicYearId' in data) || isStringBounded(data.academicYearId, 128))
-        && isScoreValid(data.tugas)
-        && isScoreValid(data.kuis)
-        && isScoreValid(data.ulanganHarian)
-        && isScoreValid(data.pts)
-        && isScoreValid(data.pas)
-        && isScoreValid(data.praktik)
+        && isScoreValid(data.ujianLisan)
+        && isScoreValid(data.ujianTulis)
+        && (!('writtenDetails' in data) || (data.writtenDetails is list && data.writtenDetails.size() <= 30 && (data.writtenDetails.size() == 0 || data.writtenDetails[0] is map)))
+        && (!('tugas' in data) || isScoreValid(data.tugas))
+        && (!('kuis' in data) || isScoreValid(data.kuis))
+        && (!('ulanganHarian' in data) || isScoreValid(data.ulanganHarian))
+        && (!('pts' in data) || isScoreValid(data.pts))
+        && (!('pas' in data) || isScoreValid(data.pas))
+        && (!('praktik' in data) || isScoreValid(data.praktik))
         && isScoreValid(data.finalScore)
         && isNonEmptyStringBounded(data.letterGrade, 4)
         && isValidId(data.updatedBy)
         && (!('history' in data) || (data.history is list && data.history.size() <= 50 && (data.history.size() == 0 || data.history[0] is map)))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSubjectGradingConfig(data) {
+      return data.keys().hasAll(['id', 'subjectId', 'ujianLisanWeight', 'ujianTulisWeight', 'rangeMin', 'rangeMax', 'rangeMode', 'babs', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'subjectId', 'subjectName', 'ujianLisanWeight', 'ujianTulisWeight',
+          'rangeMin', 'rangeMax', 'rangeMode', 'babs', 'kkm', 'gradeBands',
+          'updatedBy', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.subjectId)
+        && data.id == data.subjectId
+        && (!('subjectName' in data) || isStringBounded(data.subjectName, 100))
+        && data.ujianLisanWeight is number && data.ujianLisanWeight >= 0 && data.ujianLisanWeight <= 100
+        && data.ujianTulisWeight is number && data.ujianTulisWeight >= 0 && data.ujianTulisWeight <= 100
+        && (data.ujianLisanWeight + data.ujianTulisWeight) == 100
+        && data.rangeMin is number && data.rangeMin >= 0 && data.rangeMin < data.rangeMax
+        && data.rangeMax is number && data.rangeMax <= 1000
+        && data.rangeMode in ['proportional', 'direct']
+        && data.babs is list && data.babs.size() <= 30 && (data.babs.size() == 0 || data.babs[0] is map)
+        && (!('kkm' in data) || (data.kkm is number && data.kkm >= 0 && data.kkm <= 1000))
+        && (!('gradeBands' in data) || data.gradeBands is map)
+        && isValidId(data.updatedBy)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -572,10 +600,17 @@ service cloud.firestore {
         && incoming().id == subjectId
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
-      allow update: if isValidId(subjectId) && isAdmin() && isValidSubject(incoming())
+      allow update: if isValidId(subjectId) && isSignedIn() && isVerified() && isValidSubject(incoming())
         && incoming().id == existing().id
         && incoming().createdAt == existing().createdAt
-        && incoming().updatedAt == request.time;
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isTeacher()
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'code', 'name', 'category', 'gradeLevel', 'kkm', 'description', 'updatedAt'
+            ]))
+        );
       allow delete: if isValidId(subjectId) && isAdmin();
     }
 
@@ -621,10 +656,19 @@ service cloud.firestore {
         && incoming().id == scheduleId
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
-      allow update: if isValidId(scheduleId) && isAdmin() && isValidSchedule(incoming())
+      allow update: if isValidId(scheduleId) && isSignedIn() && isVerified() && isValidSchedule(incoming())
         && incoming().id == existing().id
         && incoming().createdAt == existing().createdAt
-        && incoming().updatedAt == request.time;
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isTeacher()
+            && (existing().teacherId == linkedEntityId() || existing().teacherUserId == request.auth.uid)
+            && incoming().teacherId == existing().teacherId
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'subjectId', 'subjectName', 'dayOfWeek', 'startTime', 'endTime', 'room', 'updatedAt'
+            ]))
+        );
       allow delete: if isValidId(scheduleId) && isAdmin();
     }
 
@@ -706,13 +750,42 @@ service cloud.firestore {
         && incoming().updatedBy == request.auth.uid
         && (
           isAdmin() ||
-          (isTeacher() && existing().teacherId == linkedEntityId()
+          (isTeacher()
+            && (
+              existing().teacherId == linkedEntityId() ||
+              existing().teacherUserId == request.auth.uid ||
+              existing().classId in get(/databases/$(database)/documents/teachers/$(linkedEntityId())).data.classIds
+            )
             && incoming().diff(existing()).affectedKeys().hasOnly([
+              'ujianLisan', 'ujianTulis', 'writtenDetails',
               'tugas', 'kuis', 'ulanganHarian', 'pts', 'pas', 'praktik',
               'finalScore', 'letterGrade', 'history', 'updatedBy', 'updatedAt'
             ]))
         );
       allow delete: if isValidId(gradeId) && isAdmin();
+    }
+
+    // Per-Subject Grading Config (Written Exam BABs, Question Counts, Range & Weights)
+    match /subject_grading_configs/{subjectId} {
+      allow get: if isValidId(subjectId) && isSignedIn() && isVerified();
+      allow list: if isSignedIn() && isVerified() && (isAdmin() || isTeacher() || isStudent());
+      allow create: if isValidId(subjectId) && isSignedIn() && isVerified()
+        && (isAdmin() || isTeacher())
+        && isValidSubjectGradingConfig(incoming())
+        && incoming().id == subjectId
+        && incoming().subjectId == subjectId
+        && incoming().updatedBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(subjectId) && isSignedIn() && isVerified()
+        && (isAdmin() || isTeacher())
+        && isValidSubjectGradingConfig(incoming())
+        && incoming().id == existing().id
+        && incoming().subjectId == existing().subjectId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedBy == request.auth.uid
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(subjectId) && isAdmin();
     }
 
     // Announcements collection

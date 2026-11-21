@@ -12,6 +12,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { LanguageSwitcher, useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserRole } from '../types/portal';
 
@@ -36,6 +37,7 @@ export function LoginPage({
     clearAuthError,
   } = useAuth();
   const { showToast } = useToast();
+  const { t, isRtl } = useLanguage();
 
   const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -46,18 +48,18 @@ export function LoginPage({
 
   const roleInfo = {
     admin: {
-      title: 'Portal Administrator',
-      desc: 'Pengelolaan penuh data guru, siswa, kelas, nilai, absensi, keamanan, dan laporan.',
+      title: t('portalAdminTitle'),
+      desc: t('portalAdminDesc'),
       icon: ShieldCheck,
     },
     teacher: {
-      title: 'Portal Guru & Pengajar',
-      desc: 'Kelola presensi kelas, input penilaian, jadwal mengajar, dan pengumuman kelas.',
+      title: t('portalTeacherTitle'),
+      desc: t('portalTeacherDesc'),
       icon: BookOpenCheck,
     },
     student: {
-      title: 'Portal Siswa',
-      desc: 'Pantau jadwal pelajaran, riwayat kehadiran, nilai mata pelajaran, dan pengumuman.',
+      title: t('portalStudentTitle'),
+      desc: t('portalStudentDesc'),
       icon: GraduationCap,
     },
   }[selectedRole];
@@ -129,17 +131,20 @@ export function LoginPage({
           onClick={onBackHome}
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-[#0F294A] dark:hover:text-cyan-300 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Kembali ke Beranda Sekolah
+          <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
+          {t('backToHome')}
         </button>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          aria-label="Ubah tema"
-        >
-          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-2.5">
+          <LanguageSwitcher variant="light" />
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label="Ubah tema"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
@@ -149,10 +154,15 @@ export function LoginPage({
             <div>
               <div className="flex items-center gap-3 mb-8">
                 <img
-                  src={schoolSettings.logoUrl || '/src/assets/images/school_crest_logo_1795012759504.jpg'}
+                  src={
+                    !schoolSettings.logoUrl ||
+                    schoolSettings.logoUrl === '/src/assets/images/school_crest_logo_1795012759504.jpg'
+                      ? '/assets/aistudio/logo_pondok_7b601747.png'
+                      : schoolSettings.logoUrl
+                  }
                   alt={schoolSettings.schoolName}
                   referrerPolicy="no-referrer"
-                  className="w-10 h-10 rounded-lg object-cover bg-white shrink-0"
+                  className="w-11 h-11 rounded-lg object-contain bg-white/95 p-0.5 shrink-0"
                 />
                 <div className="min-w-0">
                   <p className="font-display font-bold text-sm leading-tight truncate">
@@ -172,10 +182,8 @@ export function LoginPage({
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/15 text-xs text-slate-300 space-y-2">
-              <p className="font-semibold text-white">Panduan Akses Aman</p>
-              <p>
-                Guru & Siswa masuk menggunakan email yang telah didaftarkan oleh Administrator Sekolah melalui akun Google terverifikasi atau aktivasi Email/Password.
-              </p>
+              <p className="font-semibold text-white">{t('guideTitle')}</p>
+              <p>{t('guideDesc')}</p>
             </div>
           </div>
 
@@ -184,14 +192,14 @@ export function LoginPage({
             {/* 3 Role Tabs */}
             <div className="mb-6">
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
-                Pilih Jenis Akses Portal
+                {t('selectAccessRole')}
               </p>
               <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80">
                 {(
                   [
-                    { id: 'admin', label: 'Login Admin' },
-                    { id: 'teacher', label: 'Login Guru' },
-                    { id: 'student', label: 'Login Siswa' },
+                    { id: 'admin', label: t('tabLoginAdmin') },
+                    { id: 'teacher', label: t('tabLoginTeacher') },
+                    { id: 'student', label: t('tabLoginStudent') },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -244,12 +252,20 @@ export function LoginPage({
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
                 />
               </svg>
-              {busy ? 'Memproses...' : `Masuk dengan Google (${selectedRole === 'admin' ? 'Admin' : selectedRole === 'teacher' ? 'Guru' : 'Siswa'})`}
+              {busy
+                ? '...'
+                : `${t('googleSignIn')} (${
+                    selectedRole === 'admin'
+                      ? t('roleAdmin')
+                      : selectedRole === 'teacher'
+                        ? t('roleTeacher')
+                        : t('roleStudent')
+                  })`}
             </button>
 
             <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
               <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-              <span>atau dengan Email & Kata Sandi</span>
+              <span>{t('orWithEmail')}</span>
               <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             </div>
 
@@ -264,7 +280,7 @@ export function LoginPage({
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
                 }
               >
-                Masuk Akun
+                {t('modeLogin')}
               </button>
               <button
                 type="button"
@@ -275,7 +291,7 @@ export function LoginPage({
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
                 }
               >
-                Aktivasi Akun Baru
+                {t('modeActivate')}
               </button>
               <button
                 type="button"
@@ -286,7 +302,7 @@ export function LoginPage({
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
                 }
               >
-                Reset Password
+                {t('modeReset')}
               </button>
             </div>
 
@@ -294,16 +310,16 @@ export function LoginPage({
               {authMode === 'activate' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Nama Lengkap
+                    {t('fullNameLabel')}
                   </label>
                   <div className="relative">
-                    <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <UserCheck className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Sesuai data yang didaftarkan sekolah"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162742] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                      className="w-full ps-9 pe-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162742] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
                     />
                   </div>
                 </div>
@@ -311,17 +327,17 @@ export function LoginPage({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Email Terdaftar
+                  {t('emailLabel')}
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nama@sekolah.sch.id"
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162742] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                    className="w-full ps-9 pe-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162742] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
                   />
                 </div>
               </div>
@@ -329,10 +345,10 @@ export function LoginPage({
               {authMode !== 'reset' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {authMode === 'activate' ? 'Buat Kata Sandi Baru' : 'Kata Sandi'}
+                    {authMode === 'activate' ? t('newPasswordLabel') : t('passwordLabel')}
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="password"
                       required
@@ -340,7 +356,7 @@ export function LoginPage({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Minimal 6 karakter"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162742] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                      className="w-full ps-9 pe-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#162742] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
                     />
                   </div>
                 </div>
@@ -353,10 +369,10 @@ export function LoginPage({
               >
                 <KeyRound className="w-4 h-4" />
                 {authMode === 'login'
-                  ? 'Masuk ke Dashboard'
+                  ? t('btnDashboardLogin')
                   : authMode === 'activate'
-                    ? 'Aktivasi & Kirim Verifikasi Email'
-                    : 'Kirim Tautan Reset Password'}
+                    ? t('btnActivateSend')
+                    : t('btnResetSend')}
               </button>
             </form>
           </div>

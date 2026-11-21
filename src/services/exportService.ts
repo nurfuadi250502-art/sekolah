@@ -4,6 +4,7 @@ import autoTable from 'jspdf-autotable';
 import {
   ActivityLog,
   AttendanceRecord,
+  getGradeComponentScores,
   GradeRecord,
   SchoolSettings,
   Student,
@@ -164,23 +165,22 @@ export function exportGradesPdf(
   autoTable(docPdf, {
     startY,
     head: [
-      ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Mata Pelajaran', 'Tugas', 'Kuis', 'UH', 'PTS', 'PAS', 'Praktik', 'Akhir', 'Predikat'],
+      ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Mata Pelajaran', 'Ujian Lisan', 'Ujian Tulis', 'Nilai Akhir', 'Predikat'],
     ],
-    body: records.map((g, idx) => [
-      idx + 1,
-      g.studentNis || '-',
-      g.studentName || g.studentId,
-      g.className || g.classId,
-      g.subjectName || g.subjectId,
-      g.tugas,
-      g.kuis,
-      g.ulanganHarian,
-      g.pts,
-      g.pas,
-      g.praktik,
-      g.finalScore,
-      g.letterGrade,
-    ]),
+    body: records.map((g, idx) => {
+      const comp = getGradeComponentScores(g);
+      return [
+        idx + 1,
+        g.studentNis || '-',
+        g.studentName || g.studentId,
+        g.className || g.classId,
+        g.subjectName || g.subjectId,
+        comp.ujianLisan,
+        comp.ujianTulis,
+        g.finalScore,
+        g.letterGrade,
+      ];
+    }),
     styles: { fontSize: 8 },
     headStyles: { fillColor: [15, 41, 74] },
   });

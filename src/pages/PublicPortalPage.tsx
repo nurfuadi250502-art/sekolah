@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Award,
   BookOpen,
   Calendar,
+  ChevronRight,
   ExternalLink,
   Globe,
   GraduationCap,
@@ -9,11 +11,14 @@ import {
   Mail,
   MapPin,
   Megaphone,
+  Menu,
   Moon,
   Phone,
   Sun,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { LanguageSwitcher, useLanguage } from '../contexts/LanguageContext';
 import {
   fetchPublicAcademicInfo,
   fetchPublicAnnouncements,
@@ -29,6 +34,7 @@ import {
   WordPressPost,
 } from '../types/portal';
 
+const PONDOK_LOGO = '/assets/aistudio/logo_pondok_7b601747.png';
 const HERO_CAMPUS_IMG = '/src/assets/images/school_campus_hero_1795012759323.jpg';
 const PRINCIPAL_IMG = '/src/assets/images/avatar_principal_portrait_1795012760302.jpg';
 const LIBRARY_IMG = '/src/assets/images/campus_library_study_1795012760559.jpg';
@@ -39,6 +45,7 @@ export function PublicPortalPage({
   onOpenLogin: (initialRole?: UserRole) => void;
 }) {
   const { schoolSettings, theme, toggleTheme } = useAuth();
+  const { t, isRtl } = useLanguage();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
@@ -46,6 +53,13 @@ export function PublicPortalPage({
   const [calendarFilter, setCalendarFilter] = useState<string>('Semua');
   const [loadingPublic, setLoadingPublic] = useState(true);
   const [wpPosts, setWpPosts] = useState<WordPressPost[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const resolvedLogo =
+    !schoolSettings.logoUrl ||
+    schoolSettings.logoUrl === '/src/assets/images/school_crest_logo_1795012759504.jpg'
+      ? PONDOK_LOGO
+      : schoolSettings.logoUrl;
 
   useEffect(() => {
     let active = true;
@@ -68,7 +82,11 @@ export function PublicPortalPage({
   }, []);
 
   useEffect(() => {
-    if (!schoolSettings.wpSyncEnabled || !schoolSettings.wpShowOnPublicHome || !schoolSettings.wpSiteUrl) {
+    if (
+      !schoolSettings.wpSyncEnabled ||
+      !schoolSettings.wpShowOnPublicHome ||
+      !schoolSettings.wpSiteUrl
+    ) {
       setWpPosts([]);
       return;
     }
@@ -86,7 +104,12 @@ export function PublicPortalPage({
     return () => {
       active = false;
     };
-  }, [schoolSettings.wpSyncEnabled, schoolSettings.wpShowOnPublicHome, schoolSettings.wpSiteUrl, schoolSettings.wpCategoryId]);
+  }, [
+    schoolSettings.wpSyncEnabled,
+    schoolSettings.wpShowOnPublicHome,
+    schoolSettings.wpSiteUrl,
+    schoolSettings.wpCategoryId,
+  ]);
 
   const activeYear = academicYears.find((y) => y.isActive) || academicYears[0];
   const activeSem = semesters.find((s) => s.isActive) || semesters[0];
@@ -98,208 +121,386 @@ export function PublicPortalPage({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#091322] text-slate-900 dark:text-slate-100">
-      {/* Top Bar Contract: 3 zones separated by gap-8 */}
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0B172A]/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
-          <a
-            href="#beranda"
-            className="flex items-center gap-3 min-w-0 shrink-0"
-          >
-            <img
-              src={schoolSettings.logoUrl || '/src/assets/images/school_crest_logo_1795012759504.jpg'}
-              alt={`Logo ${schoolSettings.schoolName}`}
-              referrerPolicy="no-referrer"
-              className="w-9 h-9 rounded-lg object-cover border border-slate-200 dark:border-slate-700 bg-white shrink-0"
-            />
-            <span className="font-display font-bold text-base sm:text-lg tracking-tight text-[#0F294A] dark:text-white whitespace-nowrap truncate max-w-[220px] sm:max-w-xs">
-              {schoolSettings.schoolName}
+      {/* Top Utility Contact Bar (Inspired by Picture 1) */}
+      <div className="bg-[#121820] text-slate-200 border-b border-white/10 text-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-6 min-w-0 overflow-hidden">
+            <span className="hidden sm:inline font-medium text-slate-300 whitespace-nowrap">
+              {t('topInfo')}
             </span>
-          </a>
+            <span className="inline-flex items-center gap-1.5 text-slate-200 whitespace-nowrap tabular-nums">
+              <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              {schoolSettings.phone}
+            </span>
+            <span className="hidden md:inline-flex items-center gap-1.5 text-slate-200 truncate">
+              <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              {schoolSettings.email}
+            </span>
+          </div>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <a
-              href="#beranda"
-              className="hover:text-[#0F294A] dark:hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0"
-            >
-              Beranda
-            </a>
-            <a
-              href="#informasi"
-              className="hover:text-[#0F294A] dark:hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0"
-            >
-              Akademik
-            </a>
-            <a
-              href="#pengumuman"
-              className="hover:text-[#0F294A] dark:hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0"
-            >
-              Pengumuman
-            </a>
-            <a
-              href="#kalender"
-              className="hover:text-[#0F294A] dark:hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0"
-            >
-              Kalender
-            </a>
-            <a
-              href="#kontak"
-              className="hover:text-[#0F294A] dark:hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0"
-            >
-              Kontak
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <LanguageSwitcher variant="dark" />
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-md border border-white/15 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Ubah tema tampilan"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
             <button
               type="button"
               onClick={() => onOpenLogin()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0F294A] hover:bg-[#173B69] dark:bg-sky-600 dark:hover:bg-sky-500 text-white text-sm font-semibold transition-colors whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] uppercase tracking-wide transition-colors whitespace-nowrap"
             >
-              <LogIn className="w-4 h-4" />
-              Masuk Portal
+              <LogIn className="w-3 h-3" />
+              {t('loginPortal')}
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Hero Split */}
-      <section id="beranda" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12 lg:pt-14 lg:pb-16">
-        <div className="grid lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
-          <div className="lg:col-span-6 flex flex-col justify-between bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-10">
-            <div>
-              <p className="text-xs font-semibold tracking-wide text-sky-700 dark:text-cyan-400 mb-3">
-                School Academic Portal · NPSN {schoolSettings.npsn || '20102588'}
-              </p>
-              <h1
-                className="font-display font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.15] mb-4"
-                style={{ fontSize: 'clamp(1.9rem, 3.2vw, 2.85rem)', textWrap: 'balance' }}
-              >
-                {schoolSettings.welcomeTitle || 'Portal Akademik Sekolah Terintegrasi'}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed mb-6">
-                {schoolSettings.welcomeMessage}
-              </p>
+      {/* Full-Bleed Atmospheric Hero with Pondok Logo Background */}
+      <section
+        id="beranda"
+        className="relative overflow-hidden bg-[#06181A] text-white"
+      >
+        {/* Subtle campus backdrop layer */}
+        <img
+          src={HERO_CAMPUS_IMG}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-luminosity scale-105"
+        />
 
-              <div className="flex flex-wrap items-center gap-3 mb-8">
-                <button
-                  type="button"
-                  onClick={() => onOpenLogin()}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#0F294A] hover:bg-[#173B69] dark:bg-sky-600 dark:hover:bg-sky-500 text-white text-sm font-semibold transition-colors whitespace-nowrap"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Masuk ke Portal Akademik
-                </button>
-                <a
-                  href="#pengumuman"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors whitespace-nowrap"
-                >
-                  Pengumuman Sekolah
-                </a>
+        {/* Deep emerald-navy atmospheric gradient */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-br from-[#06171A]/95 via-[#0B2D25]/85 to-[#081C2E]/95"
+        />
+
+        {/* Warm ambient radial spotlight behind the Pondok crest */}
+        <div
+          aria-hidden="true"
+          className="hidden sm:block absolute right-[4%] lg:right-[9%] top-1/2 -translate-y-1/2 w-[380px] h-[380px] lg:w-[540px] lg:h-[540px] rounded-full bg-amber-400/15 blur-3xl pointer-events-none"
+        />
+
+        {/* Prominent Pondok Logo Background Watermark / Emblem */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none select-none absolute inset-y-0 right-0 w-full lg:w-[58%] flex items-center justify-center lg:justify-end pr-0 lg:pr-14 overflow-hidden"
+        >
+          <img
+            src={PONDOK_LOGO}
+            alt=""
+            className="w-[340px] sm:w-[440px] lg:w-[520px] max-w-none object-contain opacity-30 sm:opacity-40 lg:opacity-65 drop-shadow-[0_24px_60px_rgba(0,0,0,0.65)]"
+            style={{
+              WebkitMaskImage:
+                'radial-gradient(circle at center, rgba(0,0,0,0.98) 54%, rgba(0,0,0,0) 82%)',
+              maskImage:
+                'radial-gradient(circle at center, rgba(0,0,0,0.98) 54%, rgba(0,0,0,0) 82%)',
+            }}
+          />
+        </div>
+
+        {/* Directional dark scrim on the left so hero text stays razor-sharp */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#061419]/95 via-[#061419]/75 to-transparent"
+        />
+
+        {/* Overlay Navigation Header inside Hero (matching Picture 1) */}
+        <header className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-3">
+          <div className="flex items-center justify-between gap-6">
+            <a href="#beranda" className="flex items-center gap-3.5 min-w-0 shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/95 p-1 shadow-md border border-amber-400/50 flex items-center justify-center shrink-0">
+                <img
+                  src={resolvedLogo}
+                  alt={`Logo ${schoolSettings.schoolName}`}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain"
+                />
               </div>
-            </div>
-
-            {/* Principal Welcome Attribution */}
-            <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center gap-4">
-              <img
-                src={PRINCIPAL_IMG}
-                alt={schoolSettings.principalName || 'Kepala Sekolah'}
-                referrerPolicy="no-referrer"
-                className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-              />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                  {schoolSettings.principalName || 'Kepala Sekolah'}
+                <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-300 truncate">
+                  Modern Islamic Boarding School
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Kepala {schoolSettings.schoolName}
-                </p>
+                <span className="font-display font-extrabold text-base sm:text-xl tracking-tight text-white block truncate max-w-[210px] sm:max-w-sm">
+                  {schoolSettings.schoolName}
+                </span>
               </div>
+            </a>
+
+            <nav className="hidden lg:flex items-center gap-7 text-xs font-bold uppercase tracking-wider text-slate-100">
+              <a
+                href="#beranda"
+                className="py-1.5 border-b-2 border-amber-400 text-white whitespace-nowrap"
+              >
+                {t('navHome')}
+              </a>
+              <a
+                href="#informasi"
+                className="py-1.5 border-b-2 border-transparent hover:border-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap"
+              >
+                {t('navAcademic')}
+              </a>
+              <a
+                href="#pengumuman"
+                className="py-1.5 border-b-2 border-transparent hover:border-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap"
+              >
+                {t('navAnnouncements')}
+              </a>
+              <a
+                href="#kalender"
+                className="py-1.5 border-b-2 border-transparent hover:border-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap"
+              >
+                {t('navCalendar')}
+              </a>
+              <a
+                href="#kontak"
+                className="py-1.5 border-b-2 border-transparent hover:border-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap"
+              >
+                {t('navContact')}
+              </a>
+            </nav>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => onOpenLogin()}
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded border border-amber-400/70 bg-amber-400/15 hover:bg-amber-400 hover:text-slate-950 text-amber-300 text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                {t('masukPortal')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((v) => !v)}
+                className="lg:hidden p-2 rounded-lg border border-white/20 text-white hover:bg-white/10"
+                aria-label="Toggle navigasi"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
-          <div className="lg:col-span-6 relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[300px] lg:min-h-[460px] bg-slate-200 dark:bg-slate-800">
-            <img
-              src={HERO_CAMPUS_IMG}
-              alt={`Lingkungan Kampus ${schoolSettings.schoolName}`}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#091322]/85 via-[#091322]/25 to-transparent flex items-end p-6 sm:p-8">
-              <div>
-                <p className="text-xs font-medium text-cyan-300 mb-1">
-                  Akreditasi {schoolSettings.accreditation || 'A (Unggul)'}
+          {mobileMenuOpen && (
+            <div className="lg:hidden mt-3 p-4 rounded-xl bg-[#091822]/95 border border-white/15 backdrop-blur-md flex flex-col gap-3 text-xs font-bold uppercase tracking-wider">
+              <a href="#beranda" onClick={() => setMobileMenuOpen(false)} className="text-amber-300">
+                {t('navHome')}
+              </a>
+              <a href="#informasi" onClick={() => setMobileMenuOpen(false)} className="text-slate-100">
+                {t('navAcademic')}
+              </a>
+              <a href="#pengumuman" onClick={() => setMobileMenuOpen(false)} className="text-slate-100">
+                {t('navAnnouncements')}
+              </a>
+              <a href="#kalender" onClick={() => setMobileMenuOpen(false)} className="text-slate-100">
+                {t('navCalendar')}
+              </a>
+              <a href="#kontak" onClick={() => setMobileMenuOpen(false)} className="text-slate-100">
+                {t('navContact')}
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenLogin();
+                }}
+                className="mt-1 py-2.5 px-4 rounded bg-amber-400 text-slate-950 font-extrabold text-center"
+              >
+                {t('masukPortal')}
+              </button>
+            </div>
+          )}
+        </header>
+
+        {/* Hero Main Content Area */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-14 lg:pt-16 lg:pb-20">
+          <div className="max-w-2xl">
+            <p className="font-display text-lg sm:text-2xl font-bold text-amber-400 tracking-tight mb-2">
+              {t('heroEyebrow')}
+            </p>
+            <h1
+              className="font-display font-extrabold text-white tracking-tight leading-[1.06] mb-3"
+              style={{ fontSize: 'clamp(2.15rem, 4.4vw, 3.85rem)', textWrap: 'balance' }}
+            >
+              {schoolSettings.welcomeTitle || schoolSettings.schoolName}
+            </h1>
+            <p className="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl text-amber-400 tracking-tight mb-5 tabular-nums">
+              {t('heroTermPrefix')} {activeYear?.name || '2026/2027'} · {t('heroSemester')} {activeSem?.name || 'Ganjil'}
+            </p>
+            <p className="text-slate-200/95 text-sm sm:text-base leading-relaxed max-w-xl mb-7">
+              {schoolSettings.welcomeMessage}
+            </p>
+
+            {/* Primary Gold CTA + Secondary Outline */}
+            <div className="flex flex-wrap items-center gap-3.5 mb-8">
+              <button
+                type="button"
+                onClick={() => onOpenLogin()}
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-sm bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-extrabold uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-colors whitespace-nowrap"
+              >
+                <LogIn className="w-4 h-4" />
+                {t('masukPortal')}
+              </button>
+              <a
+                href="#pengumuman"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-sm border border-white/30 bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold uppercase tracking-wider backdrop-blur-sm transition-colors whitespace-nowrap"
+              >
+                {t('heroSecondaryBtn')}
+              </a>
+            </div>
+
+            {/* Principal / Mudir Attribution */}
+            <div className="inline-flex items-center gap-3.5 pt-4 border-t border-white/15">
+              <img
+                src={PRINCIPAL_IMG}
+                alt={schoolSettings.principalName || 'Pimpinan / Kepala Sekolah'}
+                referrerPolicy="no-referrer"
+                className="w-11 h-11 rounded-full object-cover border-2 border-amber-400/70 shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white truncate">
+                  {schoolSettings.principalName || 'Pimpinan Pondok / Kepala Sekolah'}
                 </p>
-                <p className="text-white font-display font-bold text-lg sm:text-xl leading-snug">
-                  {schoolSettings.tagline || 'Unggul dalam Prestasi dan Berkarakter'}
+                <p className="text-xs text-amber-300/90 truncate">
+                  {schoolSettings.schoolName} · {t('accreditationLabel')} {schoolSettings.accreditation || 'A (Unggul)'}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 4-column Academic Info Strip below Hero */}
-        <div
-          id="informasi"
-          className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
+        {/* Bottom 3-Column Translucent Feature Bar (Signature Layout from Picture 1) */}
+        <div className="relative z-10 bg-black/50 backdrop-blur-md border-t border-white/15">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/15">
+              <div className="py-5 md:pe-6 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-400/15 border border-amber-400/35 flex items-center justify-center text-amber-400 shrink-0">
+                  <Award className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-display font-extrabold text-sm sm:text-base uppercase tracking-wide text-white leading-snug">
+                    {t('feature1Title')}
+                  </h2>
+                  <p className="text-xs text-slate-300 truncate mt-0.5">
+                    {t('heroTermPrefix')} {activeYear?.name || '2026/2027'} · NPSN {schoolSettings.npsn || '20102588'}
+                  </p>
+                  <a
+                    href="#kalender"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-400 hover:text-amber-300 mt-1.5"
+                  >
+                    {t('feature1Action')}
+                    <ChevronRight className={`w-3.5 h-3.5 ${isRtl ? 'rotate-180' : ''}`} />
+                  </a>
+                </div>
+              </div>
+
+              <div className="py-5 md:px-6 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-400/15 border border-amber-400/35 flex items-center justify-center text-amber-400 shrink-0">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-display font-extrabold text-sm sm:text-base uppercase tracking-wide text-white leading-snug">
+                    {t('feature2Title')} {subjects.length > 0 ? `(${subjects.length})` : ''}
+                  </h2>
+                  <p className="text-xs text-slate-300 truncate mt-0.5">
+                    {t('feature2Sub')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onOpenLogin('teacher')}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-400 hover:text-amber-300 mt-1.5"
+                  >
+                    {t('feature2Action')}
+                    <ChevronRight className={`w-3.5 h-3.5 ${isRtl ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="py-5 md:ps-6 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-400/15 border border-amber-400/35 flex items-center justify-center text-amber-400 shrink-0">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-display font-extrabold text-sm sm:text-base uppercase tracking-wide text-white leading-snug">
+                    {t('feature3Title')}
+                  </h2>
+                  <p className="text-xs text-slate-300 truncate mt-0.5">
+                    {t('feature3Sub')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onOpenLogin('student')}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-400 hover:text-amber-300 mt-1.5"
+                  >
+                    {t('feature3Action')}
+                    <ChevronRight className={`w-3.5 h-3.5 ${isRtl ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4-column Academic Info & Quick Access Strip */}
+      <section
+        id="informasi"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Tahun Ajaran Aktif</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('statYearLabel')}</p>
             <p className="text-xl font-bold font-display text-[#0F294A] dark:text-white mt-1 tabular-nums">
               {activeYear?.name || '2026/2027'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {activeYear ? `${activeYear.startDate} s.d. ${activeYear.endDate}` : 'Kalender Resmi Sekolah'}
+              {activeYear ? `${activeYear.startDate} — ${activeYear.endDate}` : 'Kalender Resmi Sekolah'}
             </p>
           </div>
           <div className="bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Semester Berjalan</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('statSemLabel')}</p>
             <p className="text-xl font-bold font-display text-[#0F294A] dark:text-white mt-1">
-              Semester {activeSem?.name || 'Ganjil'}
+              {t('heroSemester')} {activeSem?.name || 'Ganjil'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Penilaian & Presensi Terintegrasi
+              {t('statSemSub')}
             </p>
           </div>
           <div className="bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Kurikulum & Mata Pelajaran</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('statSubjectLabel')}</p>
             <p className="text-xl font-bold font-display text-[#0F294A] dark:text-white mt-1 tabular-nums">
-              {subjects.length > 0 ? `${subjects.length} Mata Pelajaran` : 'Kurikulum Merdeka'}
+              {subjects.length > 0 ? `${subjects.length} ${t('statSubjectUnit')}` : t('feature2Title')}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Evaluasi Terstruktur Tugas–PAS
+              {t('statSubjectSub')}
             </p>
           </div>
           <div className="bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl p-5">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Akses Peran Portal</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('statRoleLabel')}</p>
             <div className="flex items-center gap-2 mt-2">
               <button
                 type="button"
                 onClick={() => onOpenLogin('admin')}
-                className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-sky-900/40"
+                className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-500/20"
               >
-                Admin
+                {t('roleAdmin')}
               </button>
               <button
                 type="button"
                 onClick={() => onOpenLogin('teacher')}
-                className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-sky-900/40"
+                className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-500/20"
               >
-                Guru
+                {t('roleTeacher')}
               </button>
               <button
                 type="button"
                 onClick={() => onOpenLogin('student')}
-                className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-sky-900/40"
+                className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-amber-100 dark:hover:bg-amber-500/20"
               >
-                Siswa
+                {t('roleStudent')}
               </button>
             </div>
           </div>
@@ -314,19 +515,19 @@ export function PublicPortalPage({
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
             <h2 className="text-2xl font-bold font-display text-slate-900 dark:text-white flex items-center gap-2.5">
-              <Megaphone className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
-              Pengumuman Terbaru
+              <Megaphone className="w-5 h-5 text-emerald-700 dark:text-amber-400" />
+              {t('annTitle')}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Informasi resmi sekolah untuk seluruh warga belajar dan orang tua/wali.
+              {t('annSubtitle')}
             </p>
           </div>
           <button
             type="button"
             onClick={() => onOpenLogin()}
-            className="text-sm font-semibold text-sky-700 dark:text-cyan-400 hover:underline whitespace-nowrap shrink-0"
+            className="text-sm font-semibold text-emerald-800 dark:text-amber-400 hover:underline whitespace-nowrap shrink-0"
           >
-            Masuk untuk pengumuman kelas →
+            {t('annLoginCta')}
           </button>
         </div>
 
@@ -342,10 +543,10 @@ export function PublicPortalPage({
         ) : announcements.length === 0 ? (
           <div className="bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center">
             <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-              Belum ada pengumuman publik yang dipublikasikan.
+              {t('annEmptyTitle')}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Administrator dapat menerbitkan pengumuman sekolah melalui dashboard portal.
+              {t('annEmptySub')}
             </p>
           </div>
         ) : (
@@ -357,13 +558,15 @@ export function PublicPortalPage({
               >
                 <div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-2">
-                    <span>{ann.publishDate}</span>
+                    <span className="font-mono-tabular">{ann.publishDate}</span>
                     <span aria-hidden="true">·</span>
                     <span>{ann.authorName}</span>
                     {ann.isPinned && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <span className="text-sky-700 dark:text-cyan-400 font-semibold">Disematkan</span>
+                        <span className="text-emerald-700 dark:text-amber-400 font-semibold">
+                          {t('annPinned')}
+                        </span>
                       </>
                     )}
                   </div>
@@ -379,10 +582,10 @@ export function PublicPortalPage({
                     href={ann.attachmentUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 dark:text-cyan-400 hover:underline"
+                    className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-amber-400 hover:underline"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    {ann.attachmentName || 'Lihat Lampiran'}
+                    {ann.attachmentName || t('annViewAttachment')}
                   </a>
                 )}
               </article>
@@ -395,11 +598,11 @@ export function PublicPortalPage({
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
               <div>
                 <h3 className="text-lg font-bold font-display text-slate-900 dark:text-white flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
-                  Berita & Artikel Website Sekolah (WordPress)
+                  <Globe className="w-4 h-4 text-emerald-700 dark:text-amber-400" />
+                  {t('wpTitle')}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                  Tersinkronisasi langsung dari portal berita WordPress resmi sekolah.
+                  {t('wpSubtitle')}
                 </p>
               </div>
               {schoolSettings.wpSiteUrl && (
@@ -407,9 +610,9 @@ export function PublicPortalPage({
                   href={schoolSettings.wpSiteUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 dark:text-cyan-400 hover:underline whitespace-nowrap"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-amber-400 hover:underline whitespace-nowrap"
                 >
-                  Kunjungi Website WordPress
+                  {t('wpVisit')}
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
@@ -435,7 +638,7 @@ export function PublicPortalPage({
                         {post.categories[0] && (
                           <>
                             <span aria-hidden="true">·</span>
-                            <span className="text-sky-700 dark:text-cyan-400 font-semibold">
+                            <span className="text-emerald-700 dark:text-amber-400 font-semibold">
                               {post.categories[0]}
                             </span>
                           </>
@@ -454,9 +657,9 @@ export function PublicPortalPage({
                       href={post.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 dark:text-cyan-400 hover:underline"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-amber-400 hover:underline"
                     >
-                      Baca Artikel Lengkap
+                      {t('wpReadMore')}
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
@@ -477,26 +680,33 @@ export function PublicPortalPage({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold font-display text-slate-900 dark:text-white flex items-center gap-2.5">
-                  <Calendar className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
-                  Kalender Akademik
+                  <Calendar className="w-5 h-5 text-emerald-700 dark:text-amber-400" />
+                  {t('calTitle')}
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  Jadwal kegiatan akademik, ujian, dan agenda penting semester berjalan.
+                  {t('calSubtitle')}
                 </p>
               </div>
               <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 shrink-0">
-                {['Semua', 'Akademik', 'Ujian', 'Kegiatan'].map((cat) => (
+                {(
+                  [
+                    { id: 'Semua', label: t('calFilterAll') },
+                    { id: 'Akademik', label: t('calFilterAcademic') },
+                    { id: 'Ujian', label: t('calFilterExam') },
+                    { id: 'Kegiatan', label: t('calFilterEvent') },
+                  ] as const
+                ).map((cat) => (
                   <button
-                    key={cat}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setCalendarFilter(cat)}
+                    onClick={() => setCalendarFilter(cat.id)}
                     className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                      calendarFilter === cat
+                      calendarFilter === cat.id
                         ? 'bg-white dark:bg-[#0F294A] text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    {cat}
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -505,21 +715,26 @@ export function PublicPortalPage({
             <div className="bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-200 dark:divide-slate-800">
               {filteredEvents.length === 0 ? (
                 <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                  Tidak ada agenda pada kategori ini.
+                  {t('calEmpty')}
                 </div>
               ) : (
                 filteredEvents.map((ev) => (
-                  <div key={ev.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div
+                    key={ev.id}
+                    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
                     <div className="min-w-0">
                       <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-1">
-                        <span className="font-mono-tabular font-medium text-sky-700 dark:text-cyan-400">
+                        <span className="font-mono-tabular font-medium text-emerald-700 dark:text-amber-400">
                           {ev.date}
                           {ev.endDate ? ` — ${ev.endDate}` : ''}
                         </span>
                         <span aria-hidden="true">·</span>
                         <span>{ev.category}</span>
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{ev.title}</h3>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                        {ev.title}
+                      </h3>
                       {ev.description && (
                         <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                           {ev.description}
@@ -535,29 +750,29 @@ export function PublicPortalPage({
           <div className="lg:col-span-5 bg-white dark:bg-[#0F1E33] border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
             <img
               src={LIBRARY_IMG}
-              alt="Perpustakaan Digital Sekolah"
+              alt="Perpustakaan Digital Pondok"
               referrerPolicy="no-referrer"
               className="w-full h-56 object-cover"
             />
             <div className="p-6">
               <h3 className="font-display font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
-                Ekosistem Belajar Terpadu
+                <GraduationCap className="w-5 h-5 text-emerald-700 dark:text-amber-400" />
+                {t('ecoTitle')}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
-                Guru mengelola presensi harian dan penilaian berbasis bobot kurikulum secara langsung, sementara siswa memantau jadwal, kehadiran, dan rapor hasil belajar dengan aman.
+                {t('ecoDesc')}
               </p>
               <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <p className="text-slate-500 dark:text-slate-400">Mata Pelajaran Aktif</p>
+                  <p className="text-slate-500 dark:text-slate-400">{t('ecoSubjectsLabel')}</p>
                   <p className="font-bold text-base text-slate-900 dark:text-white tabular-nums mt-0.5">
-                    {subjects.length || 'Sesuai Kurikulum'}
+                    {subjects.length || t('feature2Title')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-slate-500 dark:text-slate-400">Verifikasi Identitas</p>
+                  <p className="text-slate-500 dark:text-slate-400">{t('ecoCardLabel')}</p>
                   <p className="font-bold text-base text-slate-900 dark:text-white mt-0.5">
-                    Kartu Akun QR
+                    {t('ecoCardValue')}
                   </p>
                 </div>
               </div>
@@ -569,23 +784,23 @@ export function PublicPortalPage({
       {/* Contact & Footer */}
       <footer
         id="kontak"
-        className="bg-[#0A1D37] text-slate-200 border-t border-slate-800 mt-8"
+        className="bg-[#081A1F] text-slate-200 border-t border-white/10 mt-8"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-12 gap-8">
             <div className="md:col-span-5">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3.5 mb-4">
                 <img
-                  src={schoolSettings.logoUrl || '/src/assets/images/school_crest_logo_1795012759504.jpg'}
+                  src={resolvedLogo}
                   alt={schoolSettings.schoolName}
                   referrerPolicy="no-referrer"
-                  className="w-10 h-10 rounded-lg object-cover bg-white"
+                  className="w-12 h-12 rounded-xl object-contain bg-white/95 p-1"
                 />
                 <div>
                   <p className="font-display font-bold text-white text-base">
                     {schoolSettings.schoolName}
                   </p>
-                  <p className="text-xs text-cyan-300">School Academic Portal</p>
+                  <p className="text-xs text-amber-400">Modern Islamic Boarding School</p>
                 </div>
               </div>
               <p className="text-sm text-slate-300 leading-relaxed max-w-md">
@@ -594,58 +809,58 @@ export function PublicPortalPage({
             </div>
 
             <div className="md:col-span-4 space-y-2.5 text-sm">
-              <p className="font-semibold text-white mb-2">Informasi Kontak Sekolah</p>
+              <p className="font-semibold text-white mb-2">{t('footerContactTitle')}</p>
               <p className="flex items-start gap-2.5 text-slate-300">
-                <MapPin className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span>{schoolSettings.address}</span>
               </p>
               <p className="flex items-center gap-2.5 text-slate-300">
-                <Phone className="w-4 h-4 text-cyan-400 shrink-0" />
+                <Phone className="w-4 h-4 text-amber-400 shrink-0" />
                 <span className="tabular-nums">{schoolSettings.phone}</span>
               </p>
               <p className="flex items-center gap-2.5 text-slate-300">
-                <Mail className="w-4 h-4 text-cyan-400 shrink-0" />
+                <Mail className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>{schoolSettings.email}</span>
               </p>
               {schoolSettings.website && (
                 <p className="flex items-center gap-2.5 text-slate-300">
-                  <BookOpen className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>{schoolSettings.website}</span>
                 </p>
               )}
             </div>
 
             <div className="md:col-span-3">
-              <p className="font-semibold text-white mb-3">Akses Portal</p>
+              <p className="font-semibold text-white mb-3">{t('footerPortalTitle')}</p>
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => onOpenLogin('admin')}
-                  className="text-left text-sm text-slate-300 hover:text-cyan-300 transition-colors"
+                  className="text-start text-sm text-slate-300 hover:text-amber-300 transition-colors"
                 >
-                  Login Administrator →
+                  {t('footerLoginAdmin')}
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenLogin('teacher')}
-                  className="text-left text-sm text-slate-300 hover:text-cyan-300 transition-colors"
+                  className="text-start text-sm text-slate-300 hover:text-amber-300 transition-colors"
                 >
-                  Login Guru & Pengajar →
+                  {t('footerLoginTeacher')}
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenLogin('student')}
-                  className="text-left text-sm text-slate-300 hover:text-cyan-300 transition-colors"
+                  className="text-start text-sm text-slate-300 hover:text-amber-300 transition-colors"
                 >
-                  Login Siswa →
+                  {t('footerLoginStudent')}
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
+          <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
             <p>© {new Date().getFullYear()} {schoolSettings.schoolName}. School Academic Portal.</p>
-            <p>Terintegrasi Firebase Authentication & Cloud Firestore</p>
+            <p>Terintegrasi Firebase Authentication &amp; Cloud Firestore</p>
           </div>
         </div>
       </footer>

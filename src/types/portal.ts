@@ -9,12 +9,57 @@ export type AnnouncementTarget = 'all' | 'teacher' | 'student' | 'class';
 export type DayOfWeek = 'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat' | 'Sabtu';
 
 export interface GradeWeights {
-  tugas: number;
-  kuis: number;
-  ulanganHarian: number;
-  pts: number;
-  pas: number;
-  praktik: number;
+  ujianLisan: number;
+  ujianTulis: number;
+}
+
+export type RangeCalculationMode = 'proportional' | 'direct';
+
+export interface WrittenExamBab {
+  id: string;
+  title: string;
+  questionCount: number;
+  maxPerQuestion: number;
+}
+
+export interface GradeRangeBands {
+  aMin: number;
+  bMin: number;
+  cMin: number;
+  dMin: number;
+}
+
+export const DEFAULT_GRADE_BANDS: GradeRangeBands = {
+  aMin: 90,
+  bMin: 75,
+  cMin: 60,
+  dMin: 50,
+};
+
+export interface WrittenBabScoreEntry {
+  babId: string;
+  babTitle: string;
+  questionScores: number[];
+  maxPerQuestion: number;
+  subtotal: number;
+  maxTotal: number;
+}
+
+export interface SubjectGradingConfig {
+  id: string;
+  subjectId: string;
+  subjectName?: string;
+  ujianLisanWeight: number;
+  ujianTulisWeight: number;
+  rangeMin: number;
+  rangeMax: number;
+  rangeMode: RangeCalculationMode;
+  babs: WrittenExamBab[];
+  kkm?: number;
+  gradeBands?: GradeRangeBands;
+  updatedBy: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface AcademicCalendarEvent {
@@ -216,12 +261,15 @@ export interface GradeRecord {
   teacherName?: string;
   semesterId: string;
   academicYearId?: string;
-  tugas: number;
-  kuis: number;
-  ulanganHarian: number;
-  pts: number;
-  pas: number;
-  praktik: number;
+  ujianLisan: number;
+  ujianTulis: number;
+  writtenDetails?: WrittenBabScoreEntry[];
+  tugas?: number;
+  kuis?: number;
+  ulanganHarian?: number;
+  pts?: number;
+  pas?: number;
+  praktik?: number;
   finalScore: number;
   letterGrade: string;
   updatedBy: string;
@@ -317,26 +365,55 @@ export interface NotificationItem {
 }
 
 export const DEFAULT_GRADE_WEIGHTS: GradeWeights = {
-  tugas: 15,
-  kuis: 10,
-  ulanganHarian: 20,
-  pts: 20,
-  pas: 25,
-  praktik: 10,
+  ujianLisan: 50,
+  ujianTulis: 50,
 };
 
+export function normalizeGradeWeights(
+  raw?: Partial<GradeWeights> | Record<string, unknown> | null
+): GradeWeights {
+  if (
+    raw &&
+    typeof raw.ujianLisan === 'number' &&
+    typeof raw.ujianTulis === 'number' &&
+    !Number.isNaN(raw.ujianLisan) &&
+    !Number.isNaN(raw.ujianTulis)
+  ) {
+    return {
+      ujianLisan: Math.max(0, Math.min(100, raw.ujianLisan)),
+      ujianTulis: Math.max(0, Math.min(100, raw.ujianTulis)),
+    };
+  }
+  return { ...DEFAULT_GRADE_WEIGHTS };
+}
+
+export function getGradeComponentScores(
+  g?: Partial<GradeRecord> | null
+): { ujianLisan: number; ujianTulis: number } {
+  if (!g) return { ujianLisan: 0, ujianTulis: 0 };
+  const ujianLisan =
+    typeof g.ujianLisan === 'number' && !Number.isNaN(g.ujianLisan)
+      ? g.ujianLisan
+      : Number(g.praktik ?? g.tugas ?? 0);
+  const ujianTulis =
+    typeof g.ujianTulis === 'number' && !Number.isNaN(g.ujianTulis)
+      ? g.ujianTulis
+      : Number(g.pas ?? g.pts ?? 0);
+  return { ujianLisan, ujianTulis };
+}
+
 export const DEFAULT_SCHOOL_SETTINGS: Omit<SchoolSettings, 'updatedAt'> = {
-  schoolName: 'SMA Negeri Harapan Nusantara',
-  tagline: 'Unggul dalam Prestasi, Berkarakter, dan Berdaya Saing Global',
-  welcomeTitle: 'Selamat Datang di Portal Akademik Terpadu',
+  schoolName: 'Pondok Modern Darul Ittihad Cakru',
+  tagline: 'Modern Islamic Boarding School · Unggul dalam Prestasi, Berkarakter, dan Berakhlak Mulia',
+  welcomeTitle: 'Portal Akademik Darul Ittihad Cakru',
   welcomeMessage:
-    'School Academic Portal merupakan platform manajemen pendidikan terintegrasi yang menghubungkan administrator sekolah, tenaga pendidik, dan peserta didik dalam satu ekosistem akademik yang transparan, akurat, dan real-time.',
+    'Platform manajemen pendidikan dan kepesantrenan terpadu yang menghubungkan administrator, asatidz/guru, dan santri/siswa dalam satu ekosistem akademik yang transparan, akurat, dan real-time.',
   principalName: 'Dra. Ratna Kusumawati, M.Pd.',
-  logoUrl: '/src/assets/images/school_crest_logo_1795012759504.jpg',
-  address: 'Jl. Pendidikan Raya No. 45, Kebayoran Baru, Jakarta Selatan 12160',
+  logoUrl: '/assets/aistudio/logo_pondok_7b601747.png',
+  address: 'Cakru, Kencong, Kabupaten Jember, Jawa Timur',
   phone: '(021) 724-8890',
-  email: 'akademik@harapan-nusantara.sch.id',
-  website: 'https://harapan-nusantara.sch.id',
+  email: 'akademik@darulittihad-cakru.sch.id',
+  website: 'https://darulittihad-cakru.sch.id',
   npsn: '20102588',
   accreditation: 'A (Unggul)',
   gradeWeights: DEFAULT_GRADE_WEIGHTS,
@@ -366,7 +443,7 @@ export const DEFAULT_SCHOOL_SETTINGS: Omit<SchoolSettings, 'updatedAt'> = {
       date: '2026-11-30',
       endDate: '2026-12-08',
       category: 'Ujian',
-      description: 'Ujian akhir semester ganjil seluruh jenjang kelas X, XI, dan XII.',
+      description: 'Ujian akhir semester ganjil seluruh jenjang kelas 1 sampai 6.',
     },
     {
       id: 'cal-4',

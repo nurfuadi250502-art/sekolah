@@ -25,6 +25,7 @@ import { logActivity } from '../services/firestoreService';
 import {
   AccountInvite,
   DEFAULT_SCHOOL_SETTINGS,
+  normalizeGradeWeights,
   SchoolSettings,
   UserProfile,
   UserRole,
@@ -112,7 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       doc(db, 'school_settings', 'main'),
       (snap) => {
         if (snap.exists()) {
-          setSchoolSettings(snap.data() as SchoolSettings);
+          const data = snap.data() as SchoolSettings;
+          setSchoolSettings({
+            ...DEFAULT_SCHOOL_SETTINGS,
+            ...data,
+            gradeWeights: normalizeGradeWeights(data.gradeWeights),
+          } as SchoolSettings);
         }
       },
       (error) => {

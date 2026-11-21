@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/ui/ToastProvider';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { PortalDataProvider } from './contexts/PortalDataContext';
 import { PortalLayout } from './components/layout/PortalLayout';
 import { PublicPortalPage } from './pages/PublicPortalPage';
@@ -123,9 +124,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <AuthProvider>
-          <PortalRouter />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <PortalRouter />
+          </AuthProvider>
+        </LanguageProvider>
       </ToastProvider>
     </ErrorBoundary>
   );
